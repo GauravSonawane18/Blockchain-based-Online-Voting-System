@@ -77,7 +77,6 @@ Traditional voting systems face challenges such as fraud, tampering, lack of tra
 
 🧩 Functional Modules : <br>
 👤 1. Voter Registration & Verification : <br>
-
 -User signup <br>
 -Identity verification (simulated) <br>
 -Unique Voter ID generation <br>
