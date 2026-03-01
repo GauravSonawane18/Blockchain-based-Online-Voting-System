@@ -1,70 +1,78 @@
 import axios from 'axios';
 
-const api = axios.create({ baseURL: 'http://localhost:8080/api' });
+const api = axios.create({ baseURL: 'http://localhost:8080' });
 
-api.interceptors.request.use(config => {
+// Attach JWT token to every request
+api.interceptors.request.use(cfg => {
   const token = localStorage.getItem('token');
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
+  if (token) cfg.headers.Authorization = `Bearer ${token}`;
+  return cfg;
 });
 
+// Auto-logout on 401
 api.interceptors.response.use(
-  res => res,
+  r => r,
   err => {
     if (err.response?.status === 401) {
-      localStorage.clear();
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
       window.location.href = '/login';
     }
     return Promise.reject(err);
   }
 );
 
-export default api;
-
+// ── Auth ──────────────────────────────────────────────────────────────────────
 export const authAPI = {
-  register: (formData) => api.post('/auth/register', formData),
-  login: (data) => api.post('/auth/login', data),
-  verify2fa: (data) => api.post('/auth/verify-2fa', data),
-  setup2fa: () => api.get('/auth/setup-2fa'),
-  confirm2fa: (code) => api.post('/auth/confirm-2fa', { code }),
-  me: () => api.get('/auth/me'),
+  login:    (data) => api.post('/api/auth/login', data),
+  register: (data) => api.post('/api/auth/register', data),
+  verify2fa:(data) => api.post('/api/auth/verify-2fa', data),
+  getProfile: ()  => api.get('/api/auth/profile'),
 };
 
-export const electionAPI = {
-  getAll: () => api.get('/elections'),
-  getActive: () => api.get('/elections/active'),
-  getById: (id) => api.get(`/elections/${id}`),
-  getMyElections: () => api.get('/elections/my-elections'),
-  create: (data) => api.post('/elections', data),
-  start: (id) => api.post(`/elections/${id}/start`),
-  end: (id) => api.post(`/elections/${id}/end`),
-};
-
-export const candidateAPI = {
-  getByElection: (id) => api.get(`/candidates/election/${id}`),
-  add: (data) => api.post('/candidates', data),
-};
-
-export const voteAPI = {
-  requestOtp: (electionId) => api.post('/votes/request-otp', { electionId }),
-  verifyOtp: (electionId, otpCode) => api.post('/votes/verify-otp', { electionId, otpCode }),
-  saveReceipt: (data) => api.post('/votes/save-receipt', data),
-  getStatus: (electionId) => api.get(`/votes/status/${electionId}`),
-};
-
-export const resultAPI = {
-  getResults: (electionId) => api.get(`/results/${electionId}`),
-};
-
+// ── Admin ──────────────────────────────────────────────────────────────────────
 export const adminAPI = {
-  getPending: () => api.get('/admin/pending-voters'),
-  approve: (id) => api.post(`/admin/approve-voter/${id}`),
-  reject: (id, reason) => api.post(`/admin/reject-voter/${id}`, { reason }),
-  assignVoter: (voterId, electionId) => api.post('/admin/assign-voter', { voterId, electionId }),
-  getStats: () => api.get('/admin/stats'),
+  getPending:    ()           => api.get('/api/admin/pending-voters'),
+  approve:       (id)         => api.post(`/api/admin/approve-voter/${id}`),
+  reject:        (id, reason) => api.post(`/api/admin/reject-voter/${id}`, { reason }),
+  assignVoter:   (voterId, electionId) => api.post('/api/admin/assign-voter', { voterId, electionId }),
+  getStats:      ()           => api.get('/api/admin/stats'),
+  getAllVoters:   ()           => api.get('/api/admin/all-voters'),
 };
 
-export const auditAPI = {
-  getLogs: (page=0, size=20) => api.get(`/audit/logs?page=${page}&size=${size}`),
-  getBlockchainTxs: () => api.get('/audit/blockchain-txs'),
+// ── Elections ─────────────────────────────────────────────────────────────────
+export const electionAPI = {
+  getAll:    ()   => api.get('/api/elections'),
+  getActive: ()   => api.get('/api/elections/active'),
+  getById:   (id) => api.get(`/api/elections/${id}`),
+  getMyElections: () => api.get('/api/elections/my-elections'),
+  create:    (data) => api.post('/api/elections', data),
+  start:     (id)   => api.post(`/api/elections/${id}/start`),
+  end:       (id)   => api.post(`/api/elections/${id}/end`),
 };
+
+// ── Candidates ────────────────────────────────────────────────────────────────
+export const candidateAPI = {
+  getByElection: (electionId) => api.get(`/api/candidates/election/${electionId}`),
+  add: (data) => api.post('/api/candidates', data),
+};
+
+// ── Voting ────────────────────────────────────────────────────────────────────
+export const voteAPI = {
+  castVote:  (electionId, candidateId) => api.post('/api/votes/cast', { electionId, candidateId }),
+  hasVoted:  (electionId)              => api.get(`/api/votes/has-voted/${electionId}`),
+  myVotes:   ()                        => api.get('/api/votes/my-votes'),
+};
+
+// ── Results ───────────────────────────────────────────────────────────────────
+export const resultAPI = {
+  getResults: (electionId) => api.get(`/api/results/${electionId}`),
+};
+
+// ── Audit ─────────────────────────────────────────────────────────────────────
+export const auditAPI = {
+  getLogs:  (page = 0, size = 20) => api.get(`/api/audit/logs?page=${page}&size=${size}`),
+  getBlockchainTxs: ()            => api.get('/api/audit/blockchain-txs'),
+};
+
+export default api;
